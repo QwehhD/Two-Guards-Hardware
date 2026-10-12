@@ -3,6 +3,9 @@
 ESP32 + RC522 + servo sebagai portal parkir. Kontrak MQTT-nya ada di repo server,
 `Two-Guards/docs/mqtt-topics.md`; kalau firmware dan dokumen itu berbeda, dokumen yang benar.
 
+**Mengikuti kontrak versi 2.** Kalau versi di bagian atas `mqtt-topics.md` lebih baru, cek
+riwayat versinya di akhir dokumen itu dan sesuaikan firmware sebelum memperbarui angka ini.
+
 ## Hardware
 
 ESP32-WROOM-32U DevKit 38 pin (antena eksternal lewat konektor IPEX), RC522, servo SG90/MG90S.
@@ -85,8 +88,8 @@ heartbeat (30 detik), keepalive MQTT, server NTP, dan timeout watchdog.
 ## Perilaku firmware utama
 
 **Boot.** Servo ke posisi tutup lebih dulu, lalu WiFi, NTP, dan MQTT (clean session, LWT
-`{"online":false}` di topic status). Setelah konek: publish status
-`{"online":true,"portal_status":"closed"}`, lalu subscribe `parkir/{id}/command` QoS 1. Kalau NTP
+`{"online":false}` retained di topic status). Setelah konek: publish status
+`{"online":true,"portal_status":"closed"}` retained, lalu subscribe `parkir/{id}/command` QoS 1. Kalau NTP
 belum sinkron 5 detik setelah WiFi tersambung, MQTT tetap konek; scan dan command ditolak sampai
 jam tersinkron.
 
@@ -103,7 +106,9 @@ yang tertunda bisa membuka gerbang terlambat.
   `open` yang datang saat masih terbuka memperpanjang timer.
 - `deny`: servo diam, hanya dicatat.
 
-**Heartbeat.** Status dikirim tiap 30 detik; server memakainya untuk `last_seen_at`.
+**Heartbeat.** Status dikirim tiap 30 detik; server memakainya untuk `last_seen_at`. Semua
+pesan status, termasuk LWT, dikirim retained (QoS 1), supaya server yang baru tersambung langsung
+tahu status terakhir device. Scan tidak pernah retained.
 
 **Gagal tertutup.** Timer tutup berjalan di ESP32 sendiri, tidak bergantung WiFi/MQTT. Selama
 palang terbuka, firmware tidak mencoba konek MQTT (konek bisa memblok beberapa detik), jadi
