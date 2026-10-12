@@ -9,8 +9,9 @@
 #include "backoff.h"
 #include "config.h"
 
-// Koneksi MQTT ke broker: clean session, LWT {"online":false} di topic status,
-// sambung ulang dengan backoff, dan publish QoS 1 yang menunggu PUBACK.
+// Koneksi MQTT ke broker: clean session, LWT {"online":false} retained di
+// topic status, sambung ulang dengan backoff, dan publish QoS 1 yang menunggu
+// PUBACK. Status retained, scan tidak.
 //
 // Tidak ada antrean kirim: publish saat offline langsung gagal, dan publish
 // yang tidak di-PUBACK tidak dikirim ulang. Scan yang terlambat sampai di
@@ -45,7 +46,7 @@ class MqttLink {
 
   bool connectNow(bool portalOpen);
   void onMessage(char* topic, char* bytes, int length);
-  bool publish(const char* topic, const char* payload);
+  bool publish(const char* topic, const char* payload, bool retained);
 
   WiFiClient net_;
   MQTTClient client_{MQTT_BUFFER_SIZE};

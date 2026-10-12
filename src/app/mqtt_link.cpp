@@ -56,8 +56,9 @@ void MqttLink::begin(int deviceId, const char* host, int port, const char* usern
 
   client_.begin(host, port, net_);
   // LWT tanpa portal_status: device yang putus tidak tahu posisi palang.
-  // Tidak retained, sesuai tabel di mqtt-topics.md.
-  client_.setWill(statusTopic_, "{\"online\":false}", false, 1);
+  // Retained seperti heartbeat, supaya server yang baru konek tetap tahu
+  // device ini offline.
+  client_.setWill(statusTopic_, "{\"online\":false}", true, 1);
   // Clean session: broker tidak menimbun command selama device offline.
   client_.setOptions(MQTT_KEEPALIVE_S, true, MQTT_TIMEOUT_MS);
   client_.onMessageAdvanced([this](MQTTClient*, char topic[], char bytes[], int length) { onMessage(topic, bytes, length); });
@@ -148,13 +149,15 @@ bool MqttLink::publishScan(const char* uidHex, int64_t scannedAt) {
   char payload[96];
   snprintf(payload, sizeof payload, "{\"uid\":\"%s\",\"scanned_at\":%lld}", uidHex, static_cast<long long>(scannedAt));
 
-  return publish(scanTopic_, payload);
+  // Tidak pernah retained: scan lama yang diputar ulang broker bisa membuka gerbang.
+  return publish(scanTopic_, payload, false);
 }
 
 bool MqttLink::publishStatus(bool portalOpen) {
   const char* payload = portalOpen ? "{\"online\":true,\"portal_status\":\"open\"}" : "{\"online\":true,\"portal_status\":\"closed\"}";
 
-  if (!publish(statusTopic_, payload)) {
+  // Retained: broker menyimpan status terakhir untuk subscriber berikutnya.
+  if (!publish(statusTopic_, payload, true)) {
     return false;
   }
 
@@ -164,14 +167,14 @@ bool MqttLink::publishStatus(bool portalOpen) {
   return true;
 }
 
-bool MqttLink::publish(const char* topic, const char* payload) {
+bool MqttLink::publish(const char* topic, const char* payload, bool retained) {
   if (!client_.connected()) {
     return false;
   }
 
   // QoS 1: menunggu PUBACK sampai MQTT_TIMEOUT_MS. Kalau gagal, library
   // menutup koneksi; pesan ini tidak dikirim ulang.
-  if (!client_.publish(topic, payload, static_cast<int>(strlen(payload)), false, 1)) {
+  if (!client_.publish(topic, payload, static_cast<int>(strlen(payload)), retained, 1)) {
     const lwmqtt_err_t error = client_.lastError();
     logf("MQTT", "publish ke %s gagal (error %d: %s)", topic, error, errorHint(error));
 
