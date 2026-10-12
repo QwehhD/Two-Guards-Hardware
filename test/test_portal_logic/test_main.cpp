@@ -261,6 +261,7 @@ void test_rc522_version_flags_a_silent_chip() {
   TEST_ASSERT_EQUAL(Rc522Chip::NoResponse, describeRc522Version(0xFF).chip);
   TEST_ASSERT_EQUAL(Rc522Chip::Genuine, describeRc522Version(0x92).chip);
   TEST_ASSERT_EQUAL(Rc522Chip::Clone, describeRc522Version(0xB2).chip);
+  TEST_ASSERT_EQUAL(Rc522Chip::Clone, describeRc522Version(0x82).chip);
   TEST_ASSERT_EQUAL(Rc522Chip::Unknown, describeRc522Version(0x42).chip);
 }
 

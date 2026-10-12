@@ -34,6 +34,9 @@ inline Rc522Version describeRc522Version(uint8_t version) {
       return {Rc522Chip::Clone, "klon (0x12)"};
     case 0xB2:
       return {Rc522Chip::Clone, "klon FM17522 (0xB2)"};
+    case 0x82:
+      // Modul di project ini: nilainya sama di setiap boot dan UID terbaca normal.
+      return {Rc522Chip::Clone, "klon (0x82)"};
     default:
       return {Rc522Chip::Unknown, "versi tidak dikenal"};
   }
